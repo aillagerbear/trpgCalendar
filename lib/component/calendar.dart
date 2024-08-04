@@ -6,6 +6,7 @@ class Calendar extends StatelessWidget {
   final DateTime focusedDay;
   final Function(DateTime, DateTime) onDaySelected;
   final bool Function(DateTime) selectedDayPredicate;
+  final Function(DateTime) onPageChanged;
 
   const Calendar({
     super.key,
@@ -13,6 +14,7 @@ class Calendar extends StatelessWidget {
     required this.focusedDay,
     required this.onDaySelected,
     required this.selectedDayPredicate,
+    required this.onPageChanged,
   });
 
   @override
@@ -28,6 +30,7 @@ class Calendar extends StatelessWidget {
       ),
       onDaySelected: onDaySelected,
       selectedDayPredicate: selectedDayPredicate,
+      onPageChanged: onPageChanged,
     );
   }
 }

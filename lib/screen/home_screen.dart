@@ -3,6 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:calendar_trpg/component/calendar.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+bool isSameDay(DateTime a, DateTime b) {
+  return a.year == b.year && a.month == b.month && a.day == b.day;
+}
+
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -57,7 +61,13 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   bool selectedDayPredicate(DateTime date) {
-    return date.isAtSameMomentAs(selectedDay);
+    return isSameDay(selectedDay, date);
+  }
+
+  void onPageChanged(DateTime focusedDay) {
+    setState(() {
+      this.focusedDay = focusedDay;
+    });
   }
 
   @override
@@ -72,6 +82,7 @@ class _HomeScreenState extends State<HomeScreen> {
               focusedDay: focusedDay,
               onDaySelected: onDaySelected,
               selectedDayPredicate: selectedDayPredicate,
+              onPageChanged: onPageChanged, // onPageChanged 추가
             ),
             calendarBanner(
               selectedDay: selectedDay,
