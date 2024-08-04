@@ -1,6 +1,7 @@
 import 'package:calendar_trpg/component/calendarBanner.dart';
 import 'package:flutter/material.dart';
 import 'package:calendar_trpg/component/calendar.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -16,12 +17,35 @@ class _HomeScreenState extends State<HomeScreen> {
     DateTime.now().day,
   );
   DateTime focusedDay = DateTime.now();
+  bool isLoading = false;  // 비동기 작업 상태
 
-  void onDaySelected(DateTime selectedDay, DateTime focusedDay) {
+  void onDaySelected(DateTime selectedDay, DateTime focusedDay) async {
     setState(() {
       this.selectedDay = selectedDay;
       this.focusedDay = focusedDay;
+      isLoading = true;  // 비동기 작업 시작
     });
+
+    print('Selected day: $selectedDay');
+
+    try {
+      final response = await Supabase.instance.client
+          .from('selected_dates')
+          .insert({'date': selectedDay.toIso8601String()});
+
+      if (response.error != null) {
+        // 에러 처리
+        print('Error inserting date: ${response.error!.message}');
+      } else {
+        print('Date inserted successfully');
+      }
+    } catch (error) {
+      print('Error: $error');
+    } finally {
+      setState(() {
+        isLoading = false;  // 비동기 작업 종료
+      });
+    }
   }
 
   bool selectedDayPredicate(DateTime date) {
@@ -44,33 +68,36 @@ class _HomeScreenState extends State<HomeScreen> {
               selectedDay: selectedDay,
               taskCount: 0,
             ),
-            Expanded(
-              child: ListView(
-                padding: EdgeInsets.all(8.0),
-                children: [
-                  ScheduleCard(
-                    startTime: '오전 10:00',
-                    endTime: '오전 12:00',
-                    estimatedPlayTime: '2시간',
-                    rule: 'D&D 5판',
-                    scenario: '파인들버의 잃어버린 광산',
-                    participants: '앨리스, 밥, 찰리',
-                    keeper: '데이브',
-                    players: '이브, 프랭크, 그레이스',
-                  ),
-                  ScheduleCard(
-                    startTime: '오후 2:00',
-                    endTime: '오후 4:00',
-                    estimatedPlayTime: '2시간',
-                    rule: '패스파인더',
-                    scenario: '룬 군주의 부활',
-                    participants: '헨리, 이안, 잭',
-                    keeper: '케이트',
-                    players: '레오, 미아, 니나',
-                  ),
-                ],
+            if (isLoading)
+              CircularProgressIndicator()  // 로딩 표시
+            else
+              Expanded(
+                child: ListView(
+                  padding: EdgeInsets.all(8.0),
+                  children: [
+                    ScheduleCard(
+                      startTime: '오전 10:00',
+                      endTime: '오전 12:00',
+                      estimatedPlayTime: '2시간',
+                      rule: 'D&D 5판',
+                      scenario: '파인들버의 잃어버린 광산',
+                      participants: '앨리스, 밥, 찰리',
+                      keeper: '데이브',
+                      players: '이브, 프랭크, 그레이스',
+                    ),
+                    ScheduleCard(
+                      startTime: '오후 2:00',
+                      endTime: '오후 4:00',
+                      estimatedPlayTime: '2시간',
+                      rule: '패스파인더',
+                      scenario: '룬 군주의 부활',
+                      participants: '헨리, 이안, 잭',
+                      keeper: '케이트',
+                      players: '레오, 미아, 니나',
+                    ),
+                  ],
+                ),
               ),
-            ),
           ],
         ),
       ),
@@ -148,10 +175,4 @@ class ScheduleCard extends StatelessWidget {
       ),
     );
   }
-}
-
-void main() {
-  runApp(const MaterialApp(
-    home: HomeScreen(),
-  ));
 }
