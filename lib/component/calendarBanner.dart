@@ -12,7 +12,7 @@ class calendarBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return             Container(
+    return Container(
       padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
       color: primaryColor,
       child: Row(

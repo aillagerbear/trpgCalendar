@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:calendar_trpg/component/calendarBanner.dart';
 import 'package:calendar_trpg/component/calendar.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:calendar_trpg/const/color.dart'; // primaryColor import
+import 'package:calendar_trpg/const/color.dart';
+import 'package:calendar_trpg/main.dart' show supabase;
+import 'package:intl/intl.dart';
 
 bool isSameDay(DateTime a, DateTime b) {
   return a.year == b.year && a.month == b.month && a.day == b.day;
@@ -28,36 +30,49 @@ class _HomeScreenState extends State<HomeScreen> {
     DateTime.now().day,
   );
   DateTime focusedDay = DateTime.now();
-  bool isLoading = false; // 비동기 작업 상태
-  List<Item> items = []; // 빈 리스트로 초기화
+  bool isLoading = false;
+  List<Item> items = [];
 
-  void onDaySelected(DateTime selectedDay, DateTime focusedDay) async {
+  String toDateOnlyString(DateTime date) {
+    return DateFormat('yyyy-MM-dd').format(date);
+  }
+
+  Future<void> onDaySelected(DateTime selectedDay, DateTime focusedDay) async {
     setState(() {
       this.selectedDay = selectedDay;
       this.focusedDay = focusedDay;
-      isLoading = true; // 비동기 작업 시작
+      isLoading = true;
     });
 
-    print('Selected day: $selectedDay');
-
     try {
-      final response = await Supabase.instance.client
-          .from('selected_dates')
-          .insert({
-        'date': selectedDay.toIso8601String()
-      });
+      print('데이터베이스에서 모든 데이터 가져오는 중...');
 
-      if (response.error != null) {
-        // 에러 처리
-        print('Error inserting date: ${response.error!.message}');
+      final response = await supabase.from('items').select().order('date');
+
+      print('데이터베이스 응답: $response');
+
+      if (response != null && response is List) {
+        final List<Item> fetchedItems = response
+            .map((item) => Item(text: '${item['date']}: ${item['text']}'))
+            .toList();
+
+        setState(() {
+          items = fetchedItems;
+          isLoading = false;
+        });
+
+        print('전체 항목 수: ${items.length}');
+        print('항목들: ${items.map((item) => item.text).join(', ')}');
       } else {
-        print('Date inserted successfully');
+        print('예상치 못한 응답 형식: $response');
+        setState(() {
+          isLoading = false;
+        });
       }
     } catch (error) {
-      print('Error: $error');
-    } finally {
+      print('항목을 가져오는 중 오류 발생: $error');
       setState(() {
-        isLoading = false; // 비동기 작업 종료
+        isLoading = false;
       });
     }
   }
@@ -109,29 +124,37 @@ class _HomeScreenState extends State<HomeScreen> {
                             });
 
                             try {
+                              String insertDate = toDateOnlyString(selectedDay);
+                              print('데이터베이스에 항목 삽입 중...');
+                              print('삽입할 날짜: $insertDate');
+                              print('삽입할 텍스트: $text');
+
                               final response = await Supabase.instance.client
                                   .from('items')
                                   .insert({
-                                'date': selectedDay.toIso8601String(),
+                                'date': insertDate,
                                 'text': text
                               });
 
-                              if (response.error != null) {
-                                print('Error inserting item: ${response.error!.message}');
-                              } else {
-                                setState(() {
-                                  items.add(Item(text: text));
-                                });
-                                print('Item inserted successfully');
-                              }
+                              print('삽입 쿼리: INSERT INTO items (date, text) VALUES (\'$insertDate\', \'$text\')');
+                              print('삽입된 항목 응답: $response');
+
+                              setState(() {
+                                items.add(Item(text: '$insertDate: $text'));
+                                isLoading = false;
+                              });
+                              print('항목이 성공적으로 삽입되었습니다.');
+
+                              // 삽입 후 즉시 데이터를 다시 조회
+                              await onDaySelected(selectedDay, focusedDay);
                             } catch (error) {
-                              print('Error: $error');
-                            } finally {
+                              print('항목 삽입 중 오류 발생: $error');
                               setState(() {
                                 isLoading = false;
                               });
-                              Navigator.pop(context);
                             }
+
+                            Navigator.pop(context);
                           },
                           child: Text('저장'),
                         ),
@@ -148,14 +171,34 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget buildCard(Item item) {
+    final parts = item.text.split(': ');
+    final date = parts[0];
+    final text = parts.length > 1 ? parts[1] : '';
+
     return Card(
       margin: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+      color: primaryColor.withOpacity(0.1), // 배경색을 primaryColor의 연한 버전으로 설정
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: primaryColor, width: 1), // 테두리 색상을 primaryColor로 설정
+      ),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('입력된 텍스트: ${item.text}'),
+            Text(
+              '날짜: $date',
+              style: TextStyle(
+                color: Colors.black, // 텍스트 색상을 primaryColor로 설정
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            SizedBox(height: 8),
+            Text(
+              '입력된 텍스트: $text',
+              style: TextStyle(color: Colors.black87),
+            ),
           ],
         ),
       ),
@@ -164,23 +207,21 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _onHorizontalDragEnd(DragEndDetails details) {
     if (details.primaryVelocity! < 0) {
-      // Swiped Left, move to next month
       setState(() {
         focusedDay = DateTime(focusedDay.year, focusedDay.month + 1, 1);
       });
     } else if (details.primaryVelocity! > 0) {
-      // Swiped Right, move to previous month
       setState(() {
         focusedDay = DateTime(focusedDay.year, focusedDay.month - 1, 1);
       });
     }
-    print('Focused day changed to: $focusedDay');
+    print('집중된 날 변경: $focusedDay');
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white, // 배경색을 흰색으로 설정
+      backgroundColor: Colors.white,
       body: SafeArea(
         child: Column(
           children: [
@@ -198,17 +239,26 @@ class _HomeScreenState extends State<HomeScreen> {
                       focusedDay: focusedDay,
                       onDaySelected: onDaySelected,
                       selectedDayPredicate: selectedDayPredicate,
-                      onPageChanged: onPageChanged, // onPageChanged 추가
+                      onPageChanged: onPageChanged,
+                      selectedDayColor: primaryColor,
                     ),
                   ),
                   if (isLoading)
-                    CircularProgressIndicator() // 로딩 표시
+                    CircularProgressIndicator(
+                      valueColor: AlwaysStoppedAnimation<Color>(primaryColor),
+                    )
                   else
                     Expanded(
                       child: ListView.builder(
                         itemCount: items.length,
                         itemBuilder: (context, index) {
-                          return buildCard(items[index]);
+                          final item = items[index];
+                          final itemDate = item.text.split(':')[0].trim();
+                          if (itemDate == toDateOnlyString(selectedDay)) {
+                            return buildCard(item);
+                          } else {
+                            return SizedBox.shrink();
+                          }
                         },
                       ),
                     ),
@@ -220,7 +270,7 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _showInputModal,
-        backgroundColor: primaryColor, // 플로팅 버튼 색상 설정
+        backgroundColor: primaryColor,
         child: Icon(Icons.add),
       ),
     );

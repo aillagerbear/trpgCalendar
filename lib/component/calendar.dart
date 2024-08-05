@@ -7,6 +7,7 @@ class Calendar extends StatelessWidget {
   final Function(DateTime, DateTime) onDaySelected;
   final bool Function(DateTime) selectedDayPredicate;
   final Function(DateTime) onPageChanged;
+  final Color selectedDayColor;
 
   const Calendar({
     super.key,
@@ -15,6 +16,7 @@ class Calendar extends StatelessWidget {
     required this.onDaySelected,
     required this.selectedDayPredicate,
     required this.onPageChanged,
+    this.selectedDayColor = Colors.blue,
   });
 
   @override
@@ -31,6 +33,16 @@ class Calendar extends StatelessWidget {
       onDaySelected: onDaySelected,
       selectedDayPredicate: selectedDayPredicate,
       onPageChanged: onPageChanged,
+      calendarStyle: CalendarStyle(
+        selectedDecoration: BoxDecoration(
+          color: selectedDayColor,
+          shape: BoxShape.circle,
+        ),
+        todayDecoration: BoxDecoration(
+          color: selectedDayColor.withOpacity(0.5),
+          shape: BoxShape.circle,
+        ),
+      ),
     );
   }
 }
