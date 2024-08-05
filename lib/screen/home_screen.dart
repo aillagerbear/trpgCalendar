@@ -9,6 +9,12 @@ bool isSameDay(DateTime a, DateTime b) {
   return a.year == b.year && a.month == b.month && a.day == b.day;
 }
 
+class Item {
+  final String text;
+
+  Item({required this.text});
+}
+
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -23,14 +29,14 @@ class _HomeScreenState extends State<HomeScreen> {
     DateTime.now().day,
   );
   DateTime focusedDay = DateTime.now();
-  bool isLoading = false;  // 비동기 작업 상태
-  List<String> items = []; // Sample list to represent added items
+  bool isLoading = false; // 비동기 작업 상태
+  List<Item> items = []; // 빈 리스트로 초기화
 
   void onDaySelected(DateTime selectedDay, DateTime focusedDay) async {
     setState(() {
       this.selectedDay = selectedDay;
       this.focusedDay = focusedDay;
-      isLoading = true;  // 비동기 작업 시작
+      isLoading = true; // 비동기 작업 시작
     });
 
     print('Selected day: $selectedDay');
@@ -44,7 +50,7 @@ class _HomeScreenState extends State<HomeScreen> {
       final response = await Supabase.instance.client
           .from('selected_dates')
           .insert({
-        'user_id': user.id,  // 유저 ID 추가
+        'user_id': user.id, // 유저 ID 추가
         'date': selectedDay.toIso8601String()
       });
 
@@ -58,7 +64,7 @@ class _HomeScreenState extends State<HomeScreen> {
       print('Error: $error');
     } finally {
       setState(() {
-        isLoading = false;  // 비동기 작업 종료
+        isLoading = false; // 비동기 작업 종료
       });
     }
   }
@@ -74,42 +80,65 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _showInputModal() {
+    final GlobalKey<FormState> formKey = GlobalKey();
+    final TextEditingController textController = TextEditingController();
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       builder: (context) {
-        return SingleChildScrollView(
-          child: Padding(
-            padding: EdgeInsets.only(
-              bottom: MediaQuery.of(context).viewInsets.bottom,
-            ),
-            child: Container(
-              padding: EdgeInsets.all(16.0),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextField(
-                    decoration: InputDecoration(labelText: 'Enter information'),
-                    onSubmitted: (value) {
-                      setState(() {
-                        items.add(value);
-                      });
-                      Navigator.pop(context);
-                    },
+        return StatefulBuilder(
+          builder: (BuildContext context, StateSetter setState) {
+            return SingleChildScrollView(
+              child: Padding(
+                padding: EdgeInsets.only(
+                  bottom: MediaQuery.of(context).viewInsets.bottom,
+                ),
+                child: Container(
+                  padding: EdgeInsets.all(16.0),
+                  child: Form(
+                    key: formKey,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        TextFormField(
+                          controller: textController,
+                          decoration: InputDecoration(labelText: '텍스트 입력'),
+                        ),
+                        SizedBox(height: 20),
+                        ElevatedButton(
+                          onPressed: () {
+                            setState(() {
+                              items.add(Item(text: textController.text));
+                            });
+                            Navigator.pop(context);
+                          },
+                          child: Text('저장'),
+                        ),
+                      ],
+                    ),
                   ),
-                  SizedBox(height: 20),
-                  ElevatedButton(
-                    onPressed: () {
-                      // Add the logic to save the information
-                    },
-                    child: Text('Save'),
-                  ),
-                ],
+                ),
               ),
-            ),
-          ),
+            );
+          },
         );
       },
+    );
+  }
+
+  Widget buildCard(Item item) {
+    return Card(
+      margin: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('입력된 텍스트: ${item.text}'),
+          ],
+        ),
+      ),
     );
   }
 
@@ -125,12 +154,13 @@ class _HomeScreenState extends State<HomeScreen> {
         focusedDay = DateTime(focusedDay.year, focusedDay.month - 1, 1);
       });
     }
+    print('Focused day changed to: $focusedDay');
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,  // 배경색을 흰색으로 설정
+      backgroundColor: Colors.white, // 배경색을 흰색으로 설정
       body: SafeArea(
         child: Column(
           children: [
@@ -152,15 +182,13 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                   if (isLoading)
-                    CircularProgressIndicator()  // 로딩 표시
+                    CircularProgressIndicator() // 로딩 표시
                   else
                     Expanded(
                       child: ListView.builder(
                         itemCount: items.length,
                         itemBuilder: (context, index) {
-                          return ListTile(
-                            title: Text(items[index]),
-                          );
+                          return buildCard(items[index]);
                         },
                       ),
                     ),
@@ -172,7 +200,7 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _showInputModal,
-        backgroundColor: primaryColor,  // 플로팅 버튼 색상 설정
+        backgroundColor: primaryColor, // 플로팅 버튼 색상 설정
         child: Icon(Icons.add),
       ),
     );
