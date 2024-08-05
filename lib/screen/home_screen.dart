@@ -3,7 +3,6 @@ import 'package:calendar_trpg/component/calendarBanner.dart';
 import 'package:calendar_trpg/component/calendar.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:calendar_trpg/const/color.dart'; // primaryColor import
-import 'package:flutter/gestures.dart';
 
 bool isSameDay(DateTime a, DateTime b) {
   return a.year == b.year && a.month == b.month && a.day == b.day;
@@ -42,15 +41,9 @@ class _HomeScreenState extends State<HomeScreen> {
     print('Selected day: $selectedDay');
 
     try {
-      final user = Supabase.instance.client.auth.currentUser;
-      if (user == null) {
-        throw 'User is not authenticated';
-      }
-
       final response = await Supabase.instance.client
           .from('selected_dates')
           .insert({
-        'user_id': user.id, // 유저 ID 추가
         'date': selectedDay.toIso8601String()
       });
 
@@ -107,11 +100,38 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                         SizedBox(height: 20),
                         ElevatedButton(
-                          onPressed: () {
+                          onPressed: () async {
+                            final String text = textController.text;
+                            if (text.isEmpty) return;
+
                             setState(() {
-                              items.add(Item(text: textController.text));
+                              isLoading = true;
                             });
-                            Navigator.pop(context);
+
+                            try {
+                              final response = await Supabase.instance.client
+                                  .from('items')
+                                  .insert({
+                                'date': selectedDay.toIso8601String(),
+                                'text': text
+                              });
+
+                              if (response.error != null) {
+                                print('Error inserting item: ${response.error!.message}');
+                              } else {
+                                setState(() {
+                                  items.add(Item(text: text));
+                                });
+                                print('Item inserted successfully');
+                              }
+                            } catch (error) {
+                              print('Error: $error');
+                            } finally {
+                              setState(() {
+                                isLoading = false;
+                              });
+                              Navigator.pop(context);
+                            }
                           },
                           child: Text('저장'),
                         ),
