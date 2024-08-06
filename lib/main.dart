@@ -8,6 +8,7 @@ import 'package:flutter/services.dart' show rootBundle;
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+
   // Load the .env file from assets
   await dotenv.load(fileName: 'assets/.env');
 
