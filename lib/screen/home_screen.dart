@@ -3,7 +3,6 @@ import 'package:calendar_trpg/component/calendarBanner.dart';
 import 'package:calendar_trpg/component/calendar.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:calendar_trpg/const/color.dart';
-import 'package:calendar_trpg/main.dart' show supabase;
 import 'package:intl/intl.dart';
 
 bool isSameDay(DateTime a, DateTime b) {
@@ -47,7 +46,7 @@ class _HomeScreenState extends State<HomeScreen> {
     try {
       print('데이터베이스에서 모든 데이터 가져오는 중...');
 
-      final response = await supabase.from('items').select().order('date');
+      final response = await Supabase.instance.client.from('items').select().order('date');
 
       print('데이터베이스 응답: $response');
 
