@@ -10,7 +10,7 @@ class LoginScreen extends StatelessWidget {
     try {
       await Supabase.instance.client.auth.signInWithOAuth(
         OAuthProvider.google,
-        redirectTo: 'https://vyghlzyacytdsjfihvux.supabase.co/auth/v1/callback',
+        redirectTo: 'https://trpgclarendal.web.app/auth/v1/callback',
       );
 
       // 로그인 성공 후 HomeScreen으로 이동

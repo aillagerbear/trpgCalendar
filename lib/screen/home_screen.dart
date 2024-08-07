@@ -4,6 +4,7 @@ import 'package:calendar_trpg/component/calendar.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:calendar_trpg/const/color.dart';
 import 'package:intl/intl.dart';
+import 'package:calendar_trpg/screen/login_screen.dart';
 
 bool isSameDay(DateTime a, DateTime b) {
   return a.year == b.year && a.month == b.month && a.day == b.day;
@@ -31,6 +32,38 @@ class _HomeScreenState extends State<HomeScreen> {
   DateTime focusedDay = DateTime.now();
   bool isLoading = false;
   List<Item> items = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _checkLoginStatus();
+  }
+
+  Future<void> _checkLoginStatus() async {
+    final session = Supabase.instance.client.auth.currentSession;
+    if (session != null) {
+      print('로그인 상태: 로그인됨');
+      print('사용자 ID: ${session.user.id}');
+      print('사용자 이메일: ${session.user.email}');
+    } else {
+      print('로그인 상태: 로그인되지 않음');
+    }
+  }
+
+  Future<void> _logout() async {
+    try {
+      await Supabase.instance.client.auth.signOut();
+      print('로그아웃 성공');
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => LoginScreen()),
+      );
+    } catch (error) {
+      print('로그아웃 중 오류 발생: $error');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('로그아웃 중 오류가 발생했습니다.')),
+      );
+    }
+  }
 
   String toDateOnlyString(DateTime date) {
     return DateFormat('yyyy-MM-dd').format(date);
@@ -176,10 +209,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return Card(
       margin: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-      color: primaryColor.withOpacity(0.1), // 배경색을 primaryColor의 연한 버전으로 설정
+      color: primaryColor.withOpacity(0.1),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: primaryColor, width: 1), // 테두리 색상을 primaryColor로 설정
+        side: BorderSide(color: primaryColor, width: 1),
       ),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -189,7 +222,7 @@ class _HomeScreenState extends State<HomeScreen> {
             Text(
               '날짜: $date',
               style: TextStyle(
-                color: Colors.black, // 텍스트 색상을 primaryColor로 설정
+                color: Colors.black,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -220,6 +253,17 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title: Text('Calendar TRPG'),
+        backgroundColor: primaryColor,
+        actions: [
+          IconButton(
+            icon: Icon(Icons.exit_to_app),
+            onPressed: _logout,
+            tooltip: '로그아웃',
+          ),
+        ],
+      ),
       backgroundColor: Colors.white,
       body: SafeArea(
         child: Column(

@@ -15,7 +15,7 @@ void _log(String message) {
 
 Future<Map<String, String>> fetchSupabaseConfig() async {
   try {
-    final response = await http.get(Uri.parse('https://us-central1-your-project-id.cloudfunctions.net/getSupabaseConfig'));
+    final response = await http.get(Uri.parse('https://us-central1-trpgclarendal.cloudfunctions.net/getSupabaseConfig'));
     if (response.statusCode == 200) {
       return Map<String, String>.from(json.decode(response.body));
     } else {
