@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
 import 'package:calendar_trpg/screen/home_screen.dart';
+import 'package:calendar_trpg/screen/login_screen.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:http/http.dart' as http;
@@ -94,7 +95,12 @@ class _WebEntryPointState extends State<WebEntryPoint> {
         ),
       );
     }
-    return HomeScreen();
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) {
+      return LoginScreen();
+    } else {
+      return HomeScreen();
+    }
   }
 }
 
@@ -139,9 +145,16 @@ class _SplashScreenState extends State<SplashScreen> {
       await initializeDateFormatting();
       _log('Date formatting initialized successfully');
 
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => HomeScreen()),
-      );
+      final user = Supabase.instance.client.auth.currentUser;
+      if (user == null) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => LoginScreen()),
+        );
+      } else {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => HomeScreen()),
+        );
+      }
     } catch (e, stackTrace) {
       _log('Error during initialization: $e');
       _log('Stack trace: $stackTrace');
